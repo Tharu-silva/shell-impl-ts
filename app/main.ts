@@ -6,7 +6,18 @@ const rl = createInterface({
 });
 
 // TODO: Uncomment the code below to pass the first stage
-rl.question("$ ", (answer) => {
-  console.log(`${answer}: command not found`);
-  rl.close();
-});
+
+
+function prompt_shell(): Promise<String> { 
+  return new Promise((resolve) => {
+    rl.question("$ ", (answer) => {
+      console.log(`${answer}: command not found`);
+      resolve(answer);
+    });
+  })
+}
+
+while (true) {
+  let prompt: String = await prompt_shell();
+}
+
