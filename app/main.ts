@@ -17,12 +17,18 @@ function prompt_shell(): Promise<String> {
 }
 
 while (true) {
-  let cmd: String = await prompt_shell();
+  let inp: String = await prompt_shell();
+  let cmd: String; let args: String[];
+
+  [cmd, ...args] = inp.split(" ");
+
   if (cmd === "exit") {
     rl.close();
     break; 
+  } else if (cmd === "echo") {
+    rl.write(`${args[0]}\n`);
   } else {
-    console.log(`${cmd}: command not found`);
+    rl.write(`${cmd} : command not found\n`);
   }
 }
 
