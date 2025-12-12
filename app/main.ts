@@ -11,13 +11,18 @@ const rl = createInterface({
 function prompt_shell(): Promise<String> { 
   return new Promise((resolve) => {
     rl.question("$ ", (answer) => {
-      console.log(`${answer}: command not found`);
       resolve(answer);
     });
   })
 }
 
 while (true) {
-  let prompt: String = await prompt_shell();
+  let cmd: String = await prompt_shell();
+  if (cmd === "exit") {
+    rl.close();
+    break; 
+  } else {
+    console.log(`${cmd}: command not found`);
+  }
 }
 
