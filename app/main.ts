@@ -28,7 +28,7 @@ while (true) {
   } else if (cmd === "echo") {
     rl.write(`${args.join(' ')}\n`);
   } else {
-    rl.write(`${cmd} : command not found\n`);
+    rl.write(`${cmd}: command not found\n`);
   }
 }
 
