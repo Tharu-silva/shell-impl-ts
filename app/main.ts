@@ -18,15 +18,15 @@ function prompt_shell(): Promise<String> {
 
 while (true) {
   let inp: String = await prompt_shell();
-  let cmd: String; let args: String[];
+  let cmd: String; let args: String;
 
-  [cmd, ...args] = inp.split(" ");
+  [cmd, args] = inp.split(" ", 2);
 
   if (cmd === "exit") {
     rl.close();
     break; 
   } else if (cmd === "echo") {
-    rl.write(`${args[0]}\n`);
+    rl.write(`${args}\n`);
   } else {
     rl.write(`${cmd} : command not found\n`);
   }
