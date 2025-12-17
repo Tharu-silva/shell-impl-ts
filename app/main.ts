@@ -1,6 +1,6 @@
 import { createInterface } from "readline";
 import path, { delimiter } from 'path';
-import { execFile } from 'child_process';
+import { spawn } from 'child_process';
 import fs from 'fs';
 
 const BUILT_INS: string[] = ['echo', 'exit', 'type'];
@@ -75,11 +75,21 @@ function handleType(cmd: string, pathExists: boolean, path: string)
 function runProgram(path: string, args: string[]): Promise<void> 
 {
   return new Promise<void>((resolve) => {
-    execFile(path, args, (error, stdout, stderr) => {
-      if (error) { rl.write(`${error.message}`); }
-      if (stderr) {rl.write(`${stderr}`)}
-      if (stdout) {rl.write(`${stdout}`);}
+    const child = spawn(path, args); 
 
+    child.stdout.on('data', (data) => {
+      rl.write(`${data}`);
+    });
+    
+    child.stderr.on('data', (data) => {
+      rl.write(`stderr: ${data}`);
+    });
+    
+    child.on('error', (error) => {
+      rl.write(`Error: ${error.message}\n`);
+    });
+    
+    child.on('close', (code) => {
       resolve();
     });
   });
