@@ -1,5 +1,6 @@
 import { createInterface } from "readline";
 import path, { delimiter } from 'path';
+import { execFile } from 'child_process';
 import fs from 'fs';
 
 const BUILT_INS: string[] = ['echo', 'exit', 'type'];
@@ -54,7 +55,7 @@ function search_PATH(cmd: string): [boolean,string]
   return [false, ""];
 }
 
-function handle_type(cmd: string) 
+function handleType(cmd: string, pathExists: boolean, path: string) 
 {
   if (BUILT_INS.includes(cmd))
   {
@@ -62,17 +63,26 @@ function handle_type(cmd: string)
     return; 
   } 
 
-  let pathExists: boolean;
-  let fullPath: string; 
-  [pathExists, fullPath] = search_PATH(cmd);
-
   if (pathExists) 
   { 
-    rl.write(`${cmd} is ${fullPath}\n`); 
+    rl.write(`${cmd} is ${path}\n`); 
   } else 
   { 
     rl.write(`${cmd}: not found\n`); 
   }
+}
+
+function runProgram(path: string, args: string[]): Promise<void> 
+{
+  return new Promise<void>((resolve) => {
+    execFile(path, args, (error, stdout, stderr) => {
+      if (error) { rl.write(`${error.message}`); }
+      if (stderr) {rl.write(`${stderr}`)}
+      if (stdout) {rl.write(`${stdout}`);}
+
+      resolve();
+    });
+  });
 }
 
 while (true) 
@@ -87,16 +97,31 @@ while (true)
   {
     rl.close();
     break; 
-  } else if (cmd === "echo") 
+  } 
+  
+  if (cmd === "echo") 
   {
     rl.write(`${args.join(' ')}\n`);
-  } else if (cmd == "type") 
+    continue; 
+  } 
+  
+  //Check if cmd exists on path
+  let pathExists: boolean;
+  let fullPath: string; 
+  [pathExists, fullPath] = search_PATH(args[0]);
+  if (cmd == "type")
   {
-    handle_type(args[0]);
+    handleType(args[0], pathExists, fullPath);
+    continue; 
   }
-  else 
+
+  [pathExists, fullPath] = search_PATH(cmd);
+  if (pathExists)
   {
-    rl.write(`${cmd}: command not found\n`);
-  }
+    await runProgram(fullPath, args);
+    continue;
+  }  
+    
+  rl.write(`${cmd}: command not found\n`);
 }
 
