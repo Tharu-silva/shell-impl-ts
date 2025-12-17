@@ -72,10 +72,10 @@ function handleType(cmd: string, pathExists: boolean, path: string)
   }
 }
 
-function runProgram(path: string, args: string[]): Promise<void> 
+function runProgram(cmd: string, args: string[]): Promise<void> 
 {
   return new Promise<void>((resolve) => {
-    const child = spawn(path, args); 
+    const child = spawn(cmd, args); 
 
     child.stdout.on('data', (data) => {
       rl.write(`${data}`);
@@ -128,7 +128,7 @@ while (true)
   [pathExists, fullPath] = search_PATH(cmd);
   if (pathExists)
   {
-    await runProgram(fullPath, args);
+    await runProgram(cmd, args);
     continue;
   }  
     
