@@ -3,7 +3,7 @@ import path, { delimiter } from 'path';
 import { spawn } from 'child_process';
 import fs from 'fs';
 
-const BUILT_INS: string[] = ['echo', 'exit', 'type'];
+const BUILT_INS: string[] = ['echo', 'exit', 'type', 'pwd'];
 
 const rl = createInterface({
   input: process.stdin,
@@ -32,7 +32,7 @@ function search_PATH(cmd: string): [boolean,string]
     let contents: string[] = [];
     try {
       contents = fs.readdirSync(pathItem);
-    } catch (err) {
+    } catch (err: unknown) {
       continue; //Path likely does not exist on disk  
     }
 
@@ -40,14 +40,29 @@ function search_PATH(cmd: string): [boolean,string]
     for (item of contents)
     {
       const fullPath: string = path.join(pathItem, item);
-      const stats = fs.statSync(fullPath);
+      let stats; 
+      try {
+        stats = fs.statSync(fullPath);
+      } catch (err: unknown)
+      {
+        if (err instanceof Error && 'node' in err)
+        {
+          const fsError = err as NodeJS.ErrnoException; 
+          switch (fsError.code) 
+          {
+            case 'EACCES': //POSIX =
+            case 'EPERM': //Windows
+              continue; //Ignore 
+            default:
+              throw err; 
+          }
+        } else { throw err; }
+      }
 
       const canOwnerExec: number = stats.mode & fs.constants.S_IXUSR;
       //Ignore directories
       if (!stats.isDirectory() && canOwnerExec && cmd == item)
-      { 
-        return [true, fullPath]; 
-      }
+      { return [true, fullPath]; }
     }
   }
 
@@ -55,17 +70,22 @@ function search_PATH(cmd: string): [boolean,string]
   return [false, ""];
 }
 
-function handleType(cmd: string, pathExists: boolean, path: string) 
+function handleType(cmd: string) 
 {
   if (BUILT_INS.includes(cmd))
   {
     rl.write(`${cmd} is a shell builtin\n`);
     return; 
   } 
+  
+  //Check if cmd exists on path
+  let pathExists: boolean;
+  let fullPath: string; 
+  [pathExists, fullPath] = search_PATH(cmd);
 
   if (pathExists) 
   { 
-    rl.write(`${cmd} is ${path}\n`); 
+    rl.write(`${cmd} is ${fullPath}\n`); 
   } else 
   { 
     rl.write(`${cmd}: not found\n`); 
@@ -114,17 +134,22 @@ while (true)
     rl.write(`${args.join(' ')}\n`);
     continue; 
   } 
+
+  if (cmd === "pwd")
+  {
+    let cwd: string = process.cwd();
+    rl.write(`${cwd}\n`);
+    continue; 
+  }
   
-  //Check if cmd exists on path
-  let pathExists: boolean;
-  let fullPath: string; 
-  [pathExists, fullPath] = search_PATH(args[0]);
   if (cmd == "type")
   {
-    handleType(args[0], pathExists, fullPath);
+    handleType(args[0]);
     continue; 
   }
 
+  let pathExists: boolean;
+  let fullPath: string; 
   [pathExists, fullPath] = search_PATH(cmd);
   if (pathExists)
   {
