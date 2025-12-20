@@ -45,12 +45,12 @@ function search_PATH(cmd: string): [boolean,string]
         stats = fs.statSync(fullPath);
       } catch (err: unknown)
       {
-        if (err instanceof Error && 'node' in err)
+        if (err instanceof Error)
         {
           const fsError = err as NodeJS.ErrnoException; 
           switch (fsError.code) 
           {
-            case 'EACCES': //POSIX =
+            case 'EACCES': //POSIX
             case 'EPERM': //Windows
               continue; //Ignore 
             default:
@@ -115,6 +115,26 @@ function runProgram(cmd: string, args: string[]): Promise<void>
   });
 }
 
+function handleBuiltIns(cmd: string, args: string[]): 'Continue' | 'Break'
+{
+  switch (cmd)
+  {
+    case 'exit':
+      rl.close();
+      return 'Break';
+    case 'echo':
+      rl.write(`${args.join(' ')}\n`);
+      return 'Continue';
+    case 'pwd':
+      let cwd: string = process.cwd();
+      rl.write(`${cwd}\n`);
+      return 'Continue'; 
+    case 'type':
+      handleType(args[0]);
+      return 'Continue';
+  } 
+}
+
 while (true) 
 {
   let inp: string = await prompt_shell();
@@ -123,29 +143,11 @@ while (true)
 
   [cmd, ...args] = inp.split(" ");
 
-  if (cmd === "exit") 
+  if (BUILT_INS.includes(cmd))
   {
-    rl.close();
-    break; 
-  } 
-  
-  if (cmd === "echo") 
-  {
-    rl.write(`${args.join(' ')}\n`);
-    continue; 
-  } 
-
-  if (cmd === "pwd")
-  {
-    let cwd: string = process.cwd();
-    rl.write(`${cwd}\n`);
-    continue; 
-  }
-  
-  if (cmd == "type")
-  {
-    handleType(args[0]);
-    continue; 
+    let nxt = handleBuiltIns(cmd, args);
+    if (nxt === 'Continue') { continue; }
+    else { break; }
   }
 
   let pathExists: boolean;
