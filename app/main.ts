@@ -93,10 +93,10 @@ function handleType(cmd: string)
   }
 }
 
-function isDirectory(path: string) : boolean
+function isDirectory(dirPath: string) : boolean
 {
   try {
-    const stats = fs.statSync(path);
+    const stats = fs.statSync(dirPath);
     return stats.isDirectory();
   } catch (err)
   { //Path does not exist
@@ -104,14 +104,56 @@ function isDirectory(path: string) : boolean
   }
 }
 
-function handleCd(path: string)
+function relativeToAbsPaths(dirPath: string): string 
 {
-  if (isDirectory(path))
+  /**
+   * Cases not dealt with: 
+   * empty string => Move to home
+   * 
+   * Cases dealth with: 
+   * ./ 
+   * .
+   * ../
+   * ..
+   * /.
+   * /..
+   * /
+   * ./x
+   * ../x
+   * /x
+   * x
+   */
+
+  let dirNames: string[] = dirPath.split('/').filter(Boolean); //Remove empty strings
+  let workingDir: string; 
+  let currDir: string = process.cwd(); 
+
+  let i = 1; 
+  if (dirPath[0] == '/') { workingDir = '/'; i = 0;}
+  else if (dirNames[0] == '.') { workingDir = process.cwd(); }
+  else if (dirNames[0] == '..') { workingDir = path.dirname(currDir); }
+  else { workingDir = `/${dirNames[0]}/`; }
+
+  for (; i < dirNames.length; ++i)
   {
-    process.chdir(path);
-  } else 
+    if (dirNames[i] == '.') { continue; }
+    else if (dirNames[i] == '..') { workingDir = path.dirname(workingDir); }
+    else { workingDir += `${dirNames[i]}/`; }
+  }
+
+  return workingDir;
+}
+
+function handleCd(dirPath: string)
+{
+  //Convert relative path to absolute path
+  let absPath: string = relativeToAbsPaths(dirPath);
+  if (isDirectory(absPath))
   {
-    rl.write(`cd: ${path}: No such file or directory\n`);
+    process.chdir(absPath);
+  } else   
+  {
+    rl.write(`cd: ${absPath}: No such file or directory\n`);
   }
 }
 
