@@ -2,8 +2,9 @@ import { createInterface } from "readline";
 import path, { delimiter } from 'path';
 import { spawn } from 'child_process';
 import fs from 'fs';
+import process from 'process';
 
-const BUILT_INS: string[] = ['echo', 'exit', 'type', 'pwd'];
+const BUILT_INS: string[] = ['echo', 'exit', 'type', 'pwd', 'cd'];
 
 const rl = createInterface({
   input: process.stdin,
@@ -92,6 +93,28 @@ function handleType(cmd: string)
   }
 }
 
+function isDirectory(path: string) : boolean
+{
+  try {
+    const stats = fs.statSync(path);
+    return stats.isDirectory();
+  } catch (err)
+  { //Path does not exist
+    return false; 
+  }
+}
+
+function handleCd(path: string)
+{
+  if (isDirectory(path))
+  {
+    process.chdir(path);
+  } else 
+  {
+    rl.write(`cd: ${path}: No such file or directory\n`);
+  }
+}
+
 function runProgram(cmd: string, args: string[]): Promise<void> 
 {
   return new Promise<void>((resolve) => {
@@ -132,6 +155,9 @@ function handleBuiltIns(cmd: string, args: string[]): 'Continue' | 'Break'
     case 'type':
       handleType(args[0]);
       return 'Continue';
+    case 'cd':
+      handleCd(args[0]);
+      return 'Continue';
   } 
 }
 
@@ -150,6 +176,7 @@ while (true)
     else { break; }
   }
 
+  //Search for command
   let pathExists: boolean;
   let fullPath: string; 
   [pathExists, fullPath] = search_PATH(cmd);
