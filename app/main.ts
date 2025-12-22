@@ -130,8 +130,8 @@ function relativeToAbsPaths(dirPath: string): string
 
   let i = 1; 
   if (dirPath[0] == '/') { workingDir = '/'; i = 0;}
-  else if (dirNames[0] == '.') { workingDir = process.cwd(); }
-  else if (dirNames[0] == '..') { workingDir = path.dirname(currDir); }
+  else if (dirNames[0] == '.') { workingDir = `${process.cwd()}/`; }
+  else if (dirNames[0] == '..') { workingDir = `${path.dirname(currDir)}/`; }
   else { workingDir = `/${dirNames[0]}/`; }
 
   for (; i < dirNames.length; ++i)
@@ -141,6 +141,10 @@ function relativeToAbsPaths(dirPath: string): string
     else { workingDir += `${dirNames[i]}/`; }
   }
 
+  //Remove post-fix '/'
+  if (workingDir.at(-1) == '/' && workingDir.length > 1) {
+    workingDir = workingDir.slice(0, -1);
+  }
   return workingDir;
 }
 
