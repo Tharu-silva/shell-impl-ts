@@ -108,9 +108,9 @@ function relativeToAbsPaths(dirPath: string): string
 {
   /**
    * Cases not dealt with: 
-   * empty string => Move to home
    * 
    * Cases dealth with: 
+   * empty string
    * ./ 
    * .
    * ../
@@ -127,11 +127,13 @@ function relativeToAbsPaths(dirPath: string): string
   let dirNames: string[] = dirPath.split('/').filter(Boolean); //Remove empty strings
   let workingDir: string; 
   let currDir: string = process.cwd(); 
+  let homeDir: string = process.env.HOME ?? process.env.USERPROFILE ?? '';
 
   let i = 1; 
-  if (dirPath[0] == '/') { workingDir = '/'; i = 0;}
-  else if (dirNames[0] == '.') { workingDir = `${process.cwd()}/`; }
-  else if (dirNames[0] == '..') { workingDir = `${path.dirname(currDir)}/`; }
+  if (dirPath[0] === '/') { workingDir = '/'; i = 0;}
+  else if (dirPath === '' || dirNames[0] === '~') { workingDir = `${homeDir}/`; }
+  else if (dirNames[0] === '.') { workingDir = `${process.cwd()}/`; }
+  else if (dirNames[0] === '..') { workingDir = `${path.dirname(currDir)}/`; }
   else { workingDir = `/${dirNames[0]}/`; }
 
   for (; i < dirNames.length; ++i)
