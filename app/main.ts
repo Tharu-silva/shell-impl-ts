@@ -186,6 +186,55 @@ function runProgram(cmd: string, args: string[]): Promise<void>
   });
 }
 
+function extractArgs(argsRaw: string) : string[]
+{
+  /**
+   * Split on space
+   * When ' is encountered move into a special state that captures the contents literally
+   * This state ends when another ' is encountered AND the next char is not '
+   * 
+   * The only thing that can seperate two args is a space, and values inside '' are treated literally
+   * cases: 
+   * 'x...' => x...
+   * 'x x x x' => x x x x
+   * x x x x => x, x, x, x
+   * x    x => x, x
+   * 'x' 'x' => x, x
+   * x x  => x, x
+   * 
+   * 'x...''x...' => x...x...
+   * x...''x... => x...x...
+   * 'x...'x'x...' => x...xx...
+   * 'x...' x 'x...' => x... , x , x...
+   * 'x...'x 'x...' => x...x, x...
+   * x'x...' => xx...
+   */
+
+  let l: number = 0;
+  let r: number = 0;
+  let args: string[] = [];
+  let insideQuote: boolean = false; 
+
+  for (; r < argsRaw.length; ++r)
+  {
+    if (argsRaw[r] === '\'')
+    {
+      insideQuote = !insideQuote;
+    } else if (argsRaw[r] === ' ' && !insideQuote)
+    {
+      if (l != r) { args.push(argsRaw.substring(l, r)); }
+      l = r + 1; 
+    }
+
+  }
+
+  if (l != r) { args.push(argsRaw.substring(l, r)); }
+
+  //Remove ' from each str
+  args = args.map(elem => elem.replaceAll('\'', ''));
+  return args;
+}
+
 function handleBuiltIns(cmd: string, args: string[]): 'Continue' | 'Break'
 {
   switch (cmd)
@@ -213,9 +262,20 @@ while (true)
 {
   let inp: string = await prompt_shell();
   let cmd: string; 
-  let args: string[];
+  let argsRaw: string;
 
-  [cmd, ...args] = inp.split(" ");
+  let firstSpace: number = inp.indexOf(' ');
+  if (firstSpace === -1) {
+    cmd = inp;
+    argsRaw = '';
+  } else {
+    cmd = inp.substring(0, firstSpace);
+    argsRaw = inp.substring(firstSpace + 1);
+  }
+  // console.log(cmd);
+  // console.log(argsRaw);
+
+  let args: string[] = extractArgs(argsRaw);
 
   if (BUILT_INS.includes(cmd))
   {
