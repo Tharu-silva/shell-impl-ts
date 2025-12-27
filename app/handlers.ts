@@ -1,7 +1,7 @@
 import process from 'process';
 
 import { rl } from './main.ts'
-import { BUILT_INS } from './symbols.ts';
+import { type BUILT_IN, isBuiltIn } from './symbols.ts';
 import { search_PATH, isDirectory, relativeToAbsPaths } from './utils.ts';
 
 /**
@@ -11,7 +11,7 @@ import { search_PATH, isDirectory, relativeToAbsPaths } from './utils.ts';
  */
 function handleType(cmd: string) 
 {
-  if (BUILT_INS.includes(cmd))
+  if (isBuiltIn(cmd))
   {
     rl.write(`${cmd} is a shell builtin\n`);
     return; 
@@ -55,7 +55,7 @@ function handleCd(dirPath: string)
  * @param args The arguments for the command.
  * @returns 'Continue' to keep the shell running, 'Break' to exit.
  */
-export function handleBuiltIns(cmd: string, args: string[]): 'Continue' | 'Break'
+export function handleBuiltIns(cmd: BUILT_IN, args: string[]): 'Continue' | 'Break'
 {
   switch (cmd)
   {

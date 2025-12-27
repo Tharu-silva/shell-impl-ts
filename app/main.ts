@@ -1,6 +1,6 @@
 import { createInterface } from "readline";
 
-import { BUILT_INS } from './symbols.ts';
+import { isBuiltIn } from './symbols.ts';
 import { search_PATH, extractArgs, runProgram } from './utils.ts';
 import { handleBuiltIns } from './handlers.ts';
 
@@ -35,7 +35,7 @@ while (true)
 
   let args: string[] = extractArgs(argsRaw);
 
-  if (BUILT_INS.includes(cmd))
+  if (isBuiltIn(cmd))
   {
     let nxt = handleBuiltIns(cmd, args);
     if (nxt === 'Continue') { continue; }
