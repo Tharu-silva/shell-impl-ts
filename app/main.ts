@@ -25,7 +25,7 @@ while (true)
   let argsRaw: string;
 
   let firstSpace: number = inp.indexOf(' ');
-  if (firstSpace === -1) {
+  if (firstSpace === -1) { //No arguments given
     cmd = inp;
     argsRaw = '';
   } else {

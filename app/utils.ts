@@ -193,14 +193,14 @@ export function extractArgs(argsRaw: string) : string[]
   let l: number = 0;
   let r: number = 0;
   let args: string[] = [];
-  let insideQuote: boolean = false; 
+  let insideSingleQuote: boolean = false; 
 
   for (; r < argsRaw.length; ++r)
   {
     if (argsRaw[r] === '\'')
     {
-      insideQuote = !insideQuote;
-    } else if (argsRaw[r] === ' ' && !insideQuote)
+      insideSingleQuote = !insideSingleQuote;
+    } else if (argsRaw[r] === ' ' && !insideSingleQuote)
     {
       if (l != r) { args.push(argsRaw.substring(l, r)); }
       l = r + 1; 
