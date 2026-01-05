@@ -179,10 +179,17 @@ export function extractArgs(argsRaw: string) : string[]
   let args: string[] = [];
   let insideSingleQuote: boolean = false; 
   let insideDoubleQuote: boolean = false; 
+  let isEscaped: boolean = false; 
 
   for (; r < argsRaw.length; ++r)
   {
-    if (argsRaw[r] === '\'' && !insideDoubleQuote)
+    if (isEscaped)
+    {
+      isEscaped = false; 
+    } else if (argsRaw[r] === '\\')
+    {
+      isEscaped = true; 
+    } else if (argsRaw[r] === '\'' && !insideDoubleQuote)
     {
       insideSingleQuote = !insideSingleQuote;
     } else if (argsRaw[r] == '"' && !insideSingleQuote) 
@@ -193,13 +200,9 @@ export function extractArgs(argsRaw: string) : string[]
       if (l != r) { args.push(argsRaw.substring(l, r)); }
       l = r + 1; 
     }
-
   }
 
   if (l != r) { args.push(argsRaw.substring(l, r)); }
-
-  //Only remove ' if inside sQuotes
-  //Only remove " if inside dQuotes
 
   //Remove ' and " from each str
   args = args.map(removeQuotes);
@@ -215,12 +218,29 @@ function removeQuotes(arg: string) : string
   let insideSingleQuote: boolean = arg[0] === "'"; //Remove all '
   let insideDoubleQuote: boolean = arg[0] === '"'; //Remove all "
 
+  let idx_to_remove: Set<number> = new Set();
+  let isEscaped: boolean = false; 
+  for (let i: number = 0; i < arg.length; ++i)
+  {
+    if (arg[i] === '\\' && !insideDoubleQuote) { 
+      if (!isEscaped)
+      {
+        idx_to_remove.add(i); 
+        isEscaped = true; 
+      } else { isEscaped = false; }
 
-  if (insideSingleQuote) { return arg.replaceAll("'", ''); }
-  else if (insideDoubleQuote) { return arg.replaceAll('"', ''); }
-  else { 
-    arg = arg.replaceAll("'", '');
-    arg = arg.replaceAll('"', ''); 
-    return arg;  
+      continue; 
+    } 
+    
+    let should_remove: boolean = !isEscaped && (
+      (arg[i] === "'" && insideSingleQuote) ||
+      (arg[i] === '"' && insideDoubleQuote) ||
+      (!insideSingleQuote && !insideDoubleQuote && (arg[i] === '"' || arg[i] == "'"))
+      );
+    
+    isEscaped = false;
+    if (should_remove) { idx_to_remove.add(i); }
   }
+
+  return [...arg].filter((_, i) => !idx_to_remove.has(i)).join('');
 } 

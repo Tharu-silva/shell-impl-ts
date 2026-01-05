@@ -117,11 +117,66 @@ describe("extractArgs", () => {
     });
   });
 
-  
-  describe("mixed", () => {
 
+  describe("mixed", () => {
+    describe("preserves multiple apostrophes within dquotes", () => {
+      test('"hello\'\'\'s world" => ["hello\'\'\'s world"]', () => {
+        expect(extractArgs('"hello\'\'\'s world"')).toEqual(["hello'''s world"]);
+      });
+    });
+
+    describe("preserves double quotes within single quotes", () => {
+      test('\'The hero said: "We will win"\' => ["The hero said: "We will win""]', () => {
+        expect(extractArgs('\'The hero said: "We will win"\'')).toEqual(['The hero said: "We will win"']);
+      });
+    });
+
+    // describe("concatenating with single + double quotes", () => {
+    //   test('\'hello\'\'world\'"world"', () => {
+    //     expect(extractArgs('\'hello\'\'world\'"world"')).toEqual(['helloworldworld']);
+    //   });
+    // });
   });
 
+  /**
+   * Backslash outside of quotes test cases
+   * 
+   * three\ \ \ spaces => three   spaces
+   * before\     after => before  after
+   * test\nexample => testnexample
+   * hello\\world => hello\world
+   * \'hello\' => 'hello'
+   */
+  describe("Backslash outside of quotes", () => {
+    describe("backslash escapes spaces outside quotes", () => {
+      test('three\\ \\ \\ spaces => ["three   spaces"]', () => {
+        expect(extractArgs('three\\ \\ \\ spaces')).toEqual(['three   spaces']);
+      });
+    });
 
+    describe("backslash before spaces collapses to single space", () => {
+      test('before\\     after => ["before  after"]', () => {
+        expect(extractArgs('before\\     after')).toEqual(['before ', 'after']);
+      });
+    });
+
+    describe("backslash escapes literal n outside quotes", () => {
+      test('test\\nexample => ["testnexample"]', () => {
+        expect(extractArgs('test\\nexample')).toEqual(['testnexample']);
+      });
+    });
+
+    describe("double backslash produces single backslash", () => {
+      test('hello\\\\world => ["hello\\world"]', () => {
+        expect(extractArgs('hello\\\\world')).toEqual(['hello\\world']);
+      });
+    });
+
+    describe("backslash escapes single quotes outside quotes", () => {
+      test("\\'hello\\' => [\"'hello'\"]", () => {
+        expect(extractArgs("\\'hello\\'")).toEqual(["'hello'"]);
+      });
+    });
+  });
 });
 
