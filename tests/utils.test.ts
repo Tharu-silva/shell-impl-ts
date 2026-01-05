@@ -138,15 +138,6 @@ describe("extractArgs", () => {
     // });
   });
 
-  /**
-   * Backslash outside of quotes test cases
-   * 
-   * three\ \ \ spaces => three   spaces
-   * before\     after => before  after
-   * test\nexample => testnexample
-   * hello\\world => hello\world
-   * \'hello\' => 'hello'
-   */
   describe("Backslash outside of quotes", () => {
     describe("backslash escapes spaces outside quotes", () => {
       test('three\\ \\ \\ spaces => ["three   spaces"]', () => {
@@ -174,7 +165,34 @@ describe("extractArgs", () => {
 
     describe("backslash escapes single quotes outside quotes", () => {
       test("\\'hello\\' => [\"'hello'\"]", () => {
-        expect(extractArgs("\\'hello\\'")).toEqual(["'hello'"]);
+        expect(extractArgs("'hello\\'")).toEqual(["hello\\"]);
+      });
+    });
+  });
+
+  /**
+   * Backslash inside of single quotes
+   * 'shell\\\nscript' => shell\\\nscript
+   * 'example\"test' => example\"test
+   * 'example\"testhello\"shell' => example\"testhello\"shell
+   */
+
+  describe("Backslash inside of single quotes", () => {
+    describe("backslash preserved literally inside single quotes", () => {
+      test("'shell\\\\\\nscript' => ['shell\\\nscript']", () => {
+        expect(extractArgs("'shell\\\\\\nscript'")).toEqual(['shell\\\\\\nscript']);
+      });
+    });
+
+    describe("backslash and double quote preserved inside single quotes", () => {
+      test("'example\\\"test' => ['example\\\"test']", () => {
+        expect(extractArgs("'example\\\"test'")).toEqual(['example\\"test']);
+      });
+    });
+
+    describe("multiple escaped quotes preserved inside single quotes", () => {
+      test("'example\\\"testhello\\\"shell' => ['example\\\"testhello\\\"shell']", () => {
+        expect(extractArgs("'example\\\"testhello\\\"shell'")).toEqual(['example\\"testhello\\"shell']);
       });
     });
   });

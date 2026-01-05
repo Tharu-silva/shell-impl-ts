@@ -169,10 +169,7 @@ export function runProgram(cmd: string, args: string[]): Promise<void>
 export function extractArgs(argsRaw: string) : string[]
 {
   /**
-   * "hello    world" => ["hello    world"]
-   * "hello""world" => ["helloworld"]
-   * "hello" "world" => ["hello", "world"]
-   * "hello's world" => ["hello's world"]
+   * 'echo 'shell\\\nscript'
    */
   let l: number = 0;
   let r: number = 0;
@@ -210,19 +207,23 @@ export function extractArgs(argsRaw: string) : string[]
 }
 
 /**
- * Helper to remove single and double quotes that encapsulate an argument
+ * Helper to remove single and double quotes from an argument
  * @param arg A parsed argument
  */
 function removeQuotes(arg: string) : string 
 {
-  let insideSingleQuote: boolean = arg[0] === "'"; //Remove all '
-  let insideDoubleQuote: boolean = arg[0] === '"'; //Remove all "
+  let insideSingleQuote: boolean = false;  
+  let insideDoubleQuote: boolean = false; 
 
   let idx_to_remove: Set<number> = new Set();
   let isEscaped: boolean = false; 
   for (let i: number = 0; i < arg.length; ++i)
   {
-    if (arg[i] === '\\' && !insideDoubleQuote) { 
+    if (arg[i] === "'" && !insideDoubleQuote && !isEscaped) { insideSingleQuote = !insideSingleQuote; }
+    if (arg[i] === '"' && !insideSingleQuote && !isEscaped) { insideDoubleQuote = !insideDoubleQuote; }
+
+
+    if (arg[i] === '\\' && !insideDoubleQuote && !insideSingleQuote) { 
       if (!isEscaped)
       {
         idx_to_remove.add(i); 
@@ -233,14 +234,16 @@ function removeQuotes(arg: string) : string
     } 
     
     let should_remove: boolean = !isEscaped && (
-      (arg[i] === "'" && insideSingleQuote) ||
-      (arg[i] === '"' && insideDoubleQuote) ||
+      (arg[i] === "'" && insideSingleQuote && !insideDoubleQuote) ||
+      (arg[i] === '"' && insideDoubleQuote && !insideSingleQuote) ||
       (!insideSingleQuote && !insideDoubleQuote && (arg[i] === '"' || arg[i] == "'"))
       );
     
     isEscaped = false;
     if (should_remove) { idx_to_remove.add(i); }
   }
+  
 
+  //Remove idxs from arg
   return [...arg].filter((_, i) => !idx_to_remove.has(i)).join('');
 } 
