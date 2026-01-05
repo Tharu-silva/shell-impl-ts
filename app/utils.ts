@@ -169,38 +169,26 @@ export function runProgram(cmd: string, args: string[]): Promise<void>
 export function extractArgs(argsRaw: string) : string[]
 {
   /**
-   * Split on space
-   * When ' is encountered move into a special state that captures the contents literally
-   * This state ends when another ' is encountered AND the next char is not '
-   * 
-   * The only thing that can seperate two args is a space, and values inside '' are treated literally
-   * cases: 
-   * 'x...' => x...
-   * 'x x x x' => x x x x
-   * x x x x => x, x, x, x
-   * x    x => x, x
-   * 'x' 'x' => x, x
-   * x x  => x, x
-   * 
-   * 'x...''x...' => x...x...
-   * x...''x... => x...x...
-   * 'x...'x'x...' => x...xx...
-   * 'x...' x 'x...' => x... , x , x...
-   * 'x...'x 'x...' => x...x, x...
-   * x'x...' => xx...
+   * "hello    world" => ["hello    world"]
+   * "hello""world" => ["helloworld"]
+   * "hello" "world" => ["hello", "world"]
+   * "hello's world" => ["hello's world"]
    */
-
   let l: number = 0;
   let r: number = 0;
   let args: string[] = [];
   let insideSingleQuote: boolean = false; 
+  let insideDoubleQuote: boolean = false; 
 
   for (; r < argsRaw.length; ++r)
   {
-    if (argsRaw[r] === '\'')
+    if (argsRaw[r] === '\'' && !insideDoubleQuote)
     {
       insideSingleQuote = !insideSingleQuote;
-    } else if (argsRaw[r] === ' ' && !insideSingleQuote)
+    } else if (argsRaw[r] == '"' && !insideSingleQuote) 
+    {
+      insideDoubleQuote = !insideDoubleQuote; 
+    } else if (argsRaw[r] === ' ' && !insideSingleQuote && !insideDoubleQuote)
     {
       if (l != r) { args.push(argsRaw.substring(l, r)); }
       l = r + 1; 
@@ -210,7 +198,29 @@ export function extractArgs(argsRaw: string) : string[]
 
   if (l != r) { args.push(argsRaw.substring(l, r)); }
 
-  //Remove ' from each str
-  args = args.map(elem => elem.replaceAll('\'', ''));
+  //Only remove ' if inside sQuotes
+  //Only remove " if inside dQuotes
+
+  //Remove ' and " from each str
+  args = args.map(removeQuotes);
   return args;
 }
+
+/**
+ * Helper to remove single and double quotes that encapsulate an argument
+ * @param arg A parsed argument
+ */
+function removeQuotes(arg: string) : string 
+{
+  let insideSingleQuote: boolean = arg[0] === "'"; //Remove all '
+  let insideDoubleQuote: boolean = arg[0] === '"'; //Remove all "
+
+
+  if (insideSingleQuote) { return arg.replaceAll("'", ''); }
+  else if (insideDoubleQuote) { return arg.replaceAll('"', ''); }
+  else { 
+    arg = arg.replaceAll("'", '');
+    arg = arg.replaceAll('"', ''); 
+    return arg;  
+  }
+} 
