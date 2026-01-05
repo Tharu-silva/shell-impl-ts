@@ -196,5 +196,10 @@ describe("extractArgs", () => {
       });
     });
   });
+
+
+  /**
+   * Backslash inside of double quotes
+   */
 });
 

@@ -223,7 +223,20 @@ function removeQuotes(arg: string) : string
     if (arg[i] === '"' && !insideSingleQuote && !isEscaped) { insideDoubleQuote = !insideDoubleQuote; }
 
 
-    if (arg[i] === '\\' && !insideDoubleQuote && !insideSingleQuote) { 
+    if (arg[i] === '\\' && !insideSingleQuote) { 
+      //If we're inside a double quote then / should only escape and be removed if the next char is
+      // " or /
+      //i + 1 must be a valid idx if insideDoubleQuote and quotes are balanced
+      if (insideDoubleQuote)
+      {
+        if (!isEscaped && (arg[i + 1] === '"' || arg[i + 1] === '\\'))
+        {
+          isEscaped = true; 
+          idx_to_remove.add(i);
+        } else { isEscaped = false; }
+        continue;  
+      }
+
       if (!isEscaped)
       {
         idx_to_remove.add(i); 
