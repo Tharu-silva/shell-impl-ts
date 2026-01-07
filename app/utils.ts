@@ -162,8 +162,8 @@ export function runProgram(cmd: string, args: string[]): Promise<void>
 }
 
 /**
- * Extracts arguments from a raw input string.
- * @param argsRaw The raw input string containing arguments.
+ * Extracts arguments from a raw argument string.
+ * @param argsRaw The raw argument string.
  * @returns An array of extracted arguments.
  */
 export function extractArgs(argsRaw: string) : string[]
@@ -224,9 +224,6 @@ function removeQuotes(arg: string) : string
 
 
     if (arg[i] === '\\' && !insideSingleQuote) { 
-      //If we're inside a double quote then / should only escape and be removed if the next char is
-      // " or /
-      //i + 1 must be a valid idx if insideDoubleQuote and quotes are balanced
       if (insideDoubleQuote)
       {
         if (!isEscaped && (arg[i + 1] === '"' || arg[i + 1] === '\\'))
@@ -260,3 +257,71 @@ function removeQuotes(arg: string) : string
   //Remove idxs from arg
   return [...arg].filter((_, i) => !idx_to_remove.has(i)).join('');
 } 
+
+/**
+ * 
+ * @param rawInp The raw input string
+ * @returns Two arguments. First is (unquoted) cmd string and the second is a list of extracted args
+ */
+export function parseInput(rawInp: string): [string, string[]]
+{
+  /**
+   * Correctly split the cmd from the rawArg string
+   * extractArgs then return the cmd (unquoted) and the extracted args
+   * 
+   * Cases: 
+   * {'|"}n1 n2{'|"} arg1 arg2 arg3  
+   * {'|"}n1 n2{'|"}
+   * n1 arg1 arg2 arg3
+   * n1 
+   * 'n1"s'
+   * "n1's"
+   * 'n1 n2'n3
+   * n3'n1 n2'
+   * n3'n1 n2''n4 n5' 
+   */ 
+
+  let cmd: string = ''; 
+  let rawArgs: string = ''; 
+
+
+
+  if (rawInp.includes('"') || rawInp.includes("'"))
+  {
+    //Iterate until a space char outside of quote OR end of input is encountered
+    //Remove all quotes
+
+    let last_quote: string = '';
+    let idx_to_remove: Set<number> = new Set();
+    let i: number = 0;
+
+    //Identify indexes of enclosing quotes. Enclosing quotes are quotes that aren't themselves enclosed
+    for (; i < rawInp.length && (last_quote !== '' || rawInp[i] !== ' '); ++i)
+    {
+      if ((rawInp[i] === "'" || rawInp[i] == '"') && last_quote === '') 
+      {//Opening enclosing quote
+        idx_to_remove.add(i);
+        last_quote = rawInp[i];
+
+      } else if ((rawInp[i] === "'" && last_quote === "'") || 
+                (rawInp[i] == '"' && last_quote === '"')) 
+      {//Closing enclosing quote
+        idx_to_remove.add(i);
+        last_quote = '';
+      }
+    }
+
+    //Remove all quotes from the raw input
+    cmd = [...rawInp.substring(0, i)].filter((_, i) => !idx_to_remove.has(i)).join('');;
+    rawArgs = rawInp.substring(i + 1);
+
+  } else 
+  {
+    let firstSpace: number = rawInp.indexOf(' ');
+
+    cmd = (firstSpace === -1) ? rawInp : rawInp.substring(0, firstSpace);
+    rawArgs = (firstSpace === -1) ? '' : rawInp.substring(firstSpace + 1); 
+  }
+
+  return [cmd, extractArgs(rawArgs)];
+}

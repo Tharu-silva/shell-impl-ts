@@ -1,7 +1,7 @@
 import { createInterface } from "readline";
 
 import { isBuiltIn } from './symbols.ts';
-import { search_PATH, extractArgs, runProgram } from './utils.ts';
+import { search_PATH, parseInput, runProgram } from './utils.ts';
 import { handleBuiltIns } from './handlers.ts';
 
 export const rl = createInterface({
@@ -22,18 +22,28 @@ while (true)
 {
   let inp: string = await prompt_shell();
   let cmd: string; 
-  let argsRaw: string;
+  let args: string[];
 
-  let firstSpace: number = inp.indexOf(' ');
-  if (firstSpace === -1) { //No arguments given
-    cmd = inp;
-    argsRaw = '';
-  } else {
-    cmd = inp.substring(0, firstSpace);
-    argsRaw = inp.substring(firstSpace + 1);
-  }
+  /**
+   * Offload splitting logic to another function
+   * This function should take in the raw input and return the 
+   * (unquoted) cmd and its arguments as a list of strings
+   */
 
-  let args: string[] = extractArgs(argsRaw);
+  [cmd, args] = parseInput(inp);
+
+  // let firstSpace: number = inp.indexOf(' ');
+  // if (firstSpace === -1) { //No arguments given
+  //   cmd = inp;
+  //   argsRaw = '';
+  // } else {
+  //   cmd = inp.substring(0, firstSpace);
+  //   argsRaw = inp.substring(firstSpace + 1);
+  // }
+
+  // let args: string[] = extractArgs(argsRaw);
+
+  
 
   if (isBuiltIn(cmd))
   {
@@ -41,6 +51,8 @@ while (true)
     if (nxt === 'Continue') { continue; }
     else { break; }
   }
+
+
 
   //Search for command
   let pathExists: boolean;

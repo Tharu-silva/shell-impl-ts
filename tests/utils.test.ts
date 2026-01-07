@@ -1,6 +1,6 @@
 import { expect, test, describe } from "bun:test"
 
-import { extractArgs } from "../app/utils"
+import { extractArgs, parseInput } from "../app/utils"
 
 
 
@@ -202,4 +202,70 @@ describe("extractArgs", () => {
    * Backslash inside of double quotes
    */
 });
+
+describe("parseInput", () => {
+  test("{'|\"}n1 n2{'|\"} arg1 arg2 arg3 - quoted command with multiple args", () => {
+    const [cmd, args] = parseInput("'n1 n2' arg1 arg2 arg3");
+    expect(cmd).toBe("n1 n2");
+    expect(args).toEqual(["arg1", "arg2", "arg3"]);
+
+    const [cmd2, args2] = parseInput('"n1 n2" arg1 arg2 arg3');
+    expect(cmd2).toBe("n1 n2");
+    expect(args2).toEqual(["arg1", "arg2", "arg3"]);
+  });
+
+  test("{'|\"}n1 n2{'|\"} - only quoted command, no args", () => {
+    const [cmd, args] = parseInput("'n1 n2'");
+    expect(cmd).toBe("n1 n2");
+    expect(args).toEqual([]);
+
+    const [cmd2, args2] = parseInput('"n1 n2"');
+    expect(cmd2).toBe("n1 n2");
+    expect(args2).toEqual([]);
+  });
+
+  test("n1 arg1 arg2 arg3 - simple command with args", () => {
+    const [cmd, args] = parseInput("n1 arg1 arg2 arg3");
+    expect(cmd).toBe("n1");
+    expect(args).toEqual(["arg1", "arg2", "arg3"]);
+  });
+
+  test("n1 - single command, no args", () => {
+    const [cmd, args] = parseInput("n1");
+    expect(cmd).toBe("n1");
+    expect(args).toEqual([]);
+  });
+
+  test("'n1\"s' - single quote with double quote inside", () => {
+    const [cmd, args] = parseInput("'n1\"s'");
+    expect(cmd).toBe('n1"s');
+    expect(args).toEqual([]);
+  });
+
+  test('"n1\'s" - double quote with single quote inside', () => {
+    const [cmd, args] = parseInput('"n1\'s"');
+    expect(cmd).toBe("n1's");
+    expect(args).toEqual([]);
+  });
+
+  test("'n1 n2'n3 - quoted string followed by unquoted text", () => {
+    const [cmd, args] = parseInput("'n1 n2'n3");
+    expect(cmd).toBe("n1 n2n3");
+    expect(args).toEqual([]);
+  });
+
+  test("n3'n1 n2' - unquoted text followed by quoted string", () => {
+    const [cmd, args] = parseInput("n3'n1 n2'");
+    expect(cmd).toBe("n3n1 n2");
+    expect(args).toEqual([]);
+  });
+
+  test("n3'n1 n2''n4 n5' - multiple quoted sections concatenated", () => {
+    const [cmd, args] = parseInput("n3'n1 n2''n4 n5'");
+    expect(cmd).toBe("n3n1 n2n4 n5");
+    expect(args).toEqual([]);
+  });
+});
+
+
 
