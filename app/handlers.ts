@@ -1,5 +1,5 @@
 import process from 'process';
-import { type Interface } from 'readline';
+import fs from 'fs';
 import { type Writable } from 'stream';
 
 import { type BUILT_IN, isBuiltIn } from './symbols.ts';
@@ -79,4 +79,56 @@ export function handleBuiltIns(cmd: BUILT_IN, args: string[], out_stream: Writab
       handleCd(args[0], out_stream, err_stream);
       return 'Continue';
   } 
+}
+
+/**
+ * If output/error redirection is specified then modifies arguments and returns 
+ * the redirected streams, otherwise returns given argumnets and stdout for 
+ * output and error streams. 
+ * 
+ * @param args A list of string arguments
+ * @returns [args, out_stream, err_stream]
+ * args: Modified list of arguments
+ * out_stream: Redirected output stream
+ * err_strea: Redirected error stream
+ */
+export function handleRedirection(args: string[]): [string[], Writable, Writable]
+{
+  let out_stream: Writable = process.stdout;  
+  let err_stream: Writable = process.stdout; 
+  let options: fs.WriteStreamOptions = {};
+
+  let out_redir_specifiers: string[] = [">", "1>", ">>", "1>>"];
+  let err_redir_specifiers: string[] = ["2>", "2>>"];
+
+  //Find first idx of redir specifier or -1 if it doesn't exist
+  let out_redir_idx: number = args.findIndex(item => out_redir_specifiers.includes(item));
+  let err_redir_idx: number = args.findIndex(item => err_redir_specifiers.includes(item)); 
+
+  if (out_redir_idx !== -1)
+  { //Stdout redirection is specified
+    
+    //Populate flags if append is specified
+    if (args.includes(">>") || args.includes("1>>"))
+    { options.flags = 'a'; }
+
+    let fName: string = args[out_redir_idx + 1];
+    args = args.splice(0, out_redir_idx);
+
+    //Creates file if it does not exist
+    out_stream = fs.createWriteStream(fName, options); 
+  } else if (err_redir_idx !== -1)
+  {
+    //Populate flags if err append is specified
+    if (args.includes("2>>"))
+    { options.flags = 'a'; }
+
+    let fName: string = args[err_redir_idx + 1];
+    args = args.splice(0, err_redir_idx);
+
+    //Creates file if it doesn't exist
+    err_stream = fs.createWriteStream(fName, options); 
+  }
+
+  return [args, out_stream, err_stream]; 
 }

@@ -7,7 +7,7 @@ import { isBuiltIn } from './symbols.ts';
 import { 
   search_PATH, parseInput, runProgram, relativeToAbsPaths
 } from './utils.ts';
-import { handleBuiltIns } from './handlers.ts';
+import { handleBuiltIns, handleRedirection } from './handlers.ts';
 
 export const rl: Interface = createInterface({
   input: process.stdin,
@@ -31,30 +31,11 @@ while (true)
   
   [cmd, args] = parseInput(inp);
 
-  let out_stream: Writable = process.stdout;  
-  let err_stream: Writable = process.stdout; 
+  let out_stream: Writable;
+  let err_stream: Writable;
 
-  if (args.includes(">") || args.includes("1>"))
-  { //Stdout redirection is specified
-
-    let redir_idx: number = args.indexOf(">");
-    redir_idx = redir_idx === -1 ? args.indexOf("1>") : redir_idx;
-
-    let fName: string = args[redir_idx + 1];
-    args = args.splice(0, redir_idx);
-    //Creates file if it does not exist
-    out_stream = fs.createWriteStream(fName); 
-  }
-
-  if (args.includes("2>"))
-  {
-    let redir_idx: number = args.indexOf("2>");
-
-    let fName: string = args[redir_idx + 1];
-    args = args.splice(0, redir_idx);
-    //Creates file if it does not exist
-    err_stream = fs.createWriteStream(fName); 
-  }
+  //Redirects streams if redirection is specified
+  [args, out_stream, err_stream] = handleRedirection(args);
 
 
   if (isBuiltIn(cmd))
@@ -73,7 +54,10 @@ while (true)
     await runProgram(cmd, args, out_stream, err_stream);
     continue;
   }  
-    
+  
+  out_stream.end();
+  err_stream.end(); 
+  
   rl.write(`${cmd}: command not found\n`);
 }
 
