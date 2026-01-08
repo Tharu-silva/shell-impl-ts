@@ -1,19 +1,22 @@
 import process from 'process';
+import fs from 'fs';
+import { type Interface } from 'readline';
+import { type Writable } from 'stream';
 
-import { rl } from './main.ts'
 import { type BUILT_IN, isBuiltIn } from './symbols.ts';
 import { search_PATH, isDirectory, relativeToAbsPaths } from './utils.ts';
+import { rl } from './main.ts';
 
 /**
  * Handles the 'type' command by checking if the given command is a shell builtin
  * or exists in the system PATH, and outputs the appropriate message.
  * @param cmd The command to check.
  */
-function handleType(cmd: string) 
+function handleType(cmd: string, out_stream: Writable, err_stream: Writable) 
 {
   if (isBuiltIn(cmd))
   {
-    rl.write(`${cmd} is a shell builtin\n`);
+    out_stream.write(`${cmd} is a shell builtin\n`);
     return; 
   } 
   
@@ -24,10 +27,10 @@ function handleType(cmd: string)
 
   if (pathExists) 
   { 
-    rl.write(`${cmd} is ${fullPath}\n`); 
+    out_stream.write(`${cmd} is ${fullPath}\n`); 
   } else 
   { 
-    rl.write(`${cmd}: not found\n`); 
+    err_stream.write(`${cmd}: not found\n`); 
   }
 }
 
@@ -36,7 +39,7 @@ function handleType(cmd: string)
  * to the specified path.
  * @param dirPath The target directory path.
  */
-function handleCd(dirPath: string)
+function handleCd(dirPath: string, out_stream: Writable, err_stream: Writable)
 {
   //Convert relative path to absolute path
   let absPath: string = relativeToAbsPaths(dirPath);
@@ -45,7 +48,7 @@ function handleCd(dirPath: string)
     process.chdir(absPath);
   } else   
   {
-    rl.write(`cd: ${absPath}: No such file or directory\n`);
+    err_stream.write(`cd: ${absPath}: No such file or directory\n`);
   }
 }
 
@@ -53,9 +56,10 @@ function handleCd(dirPath: string)
  * Handles built-in shell commands.
  * @param cmd The command to handle.
  * @param args The arguments for the command.
+ * @param out_stream The output stream to write BuiltIns to
  * @returns 'Continue' to keep the shell running, 'Break' to exit.
  */
-export function handleBuiltIns(cmd: BUILT_IN, args: string[]): 'Continue' | 'Break'
+export function handleBuiltIns(cmd: BUILT_IN, args: string[], out_stream: Writable, err_stream: Writable): 'Continue' | 'Break'
 {
   switch (cmd)
   {
@@ -63,17 +67,17 @@ export function handleBuiltIns(cmd: BUILT_IN, args: string[]): 'Continue' | 'Bre
       rl.close();
       return 'Break';
     case 'echo':
-      rl.write(`${args.join(' ')}\n`);
+      out_stream.write(`${args.join(' ')}\n`);
       return 'Continue';
     case 'pwd':
       let cwd: string = process.cwd();
-      rl.write(`${cwd}\n`);
+      out_stream.write(`${cwd}\n`);
       return 'Continue'; 
     case 'type':
-      handleType(args[0]);
+      handleType(args[0], out_stream, err_stream);
       return 'Continue';
     case 'cd':
-      handleCd(args[0]);
+      handleCd(args[0], out_stream, err_stream);
       return 'Continue';
   } 
 }

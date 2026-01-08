@@ -1,10 +1,7 @@
 import fs from 'fs';
 import path, { delimiter } from 'path';
 import { spawn } from 'child_process';
-
-
-import { rl } from './main.ts'
-
+import type { Writable } from 'stream';
 
 /**
  * Searches the system PATH for a given command.
@@ -81,31 +78,12 @@ export function isDirectory(dirPath: string) : boolean
 }
 
 /**
- * Converts a relative directory path to an absolute path.
- * @param dirPath The relative directory path.
- * @returns The absolute directory path.
+ * Converts a relative path to an absolute path.
+ * @param dirPath The relative path.
+ * @returns The absolute path.
  */
 export function relativeToAbsPaths(dirPath: string): string 
 {
-  /**
-   * Cases not dealt with: 
-   *
-   * 
-   * Cases dealth with: 
-   * empty string
-   * ./ 
-   * .
-   * ../
-   * ..
-   * /.
-   * /..
-   * /
-   * ./x
-   * ../x
-   * /x
-   * x
-   */
-
   let dirNames: string[] = dirPath.split('/').filter(Boolean); //Remove empty strings
   let workingDir: string; 
   let currDir: string = process.cwd(); 
@@ -129,6 +107,7 @@ export function relativeToAbsPaths(dirPath: string): string
   if (workingDir.at(-1) == '/' && workingDir.length > 1) {
     workingDir = workingDir.slice(0, -1);
   }
+
   return workingDir;
 }
 
@@ -138,21 +117,21 @@ export function relativeToAbsPaths(dirPath: string): string
  * @param args The arguments for the command.
  * @returns A promise that resolves when the command has finished executing.
  */
-export function runProgram(cmd: string, args: string[]): Promise<void> 
+export function runProgram(cmd: string, args: string[], out_stream: Writable, err_stream: Writable): Promise<void> 
 {
   return new Promise<void>((resolve) => {
     const child = spawn(cmd, args); 
 
     child.stdout.on('data', (data) => {
-      rl.write(`${data}`);
+      out_stream.write(`${data}`);
     });
     
     child.stderr.on('data', (data) => {
-      rl.write(`stderr: ${data}`);
+      err_stream.write(`${data}`);
     });
     
     child.on('error', (error) => {
-      rl.write(`Error: ${error.message}\n`);
+      err_stream.write(`${error.message}\n`);
     });
     
     child.on('close', (code) => {
@@ -265,32 +244,11 @@ function removeQuotes(arg: string) : string
  */
 export function parseInput(rawInp: string): [string, string[]]
 {
-  /**
-   * Correctly split the cmd from the rawArg string
-   * extractArgs then return the cmd (unquoted) and the extracted args
-   * 
-   * Cases: 
-   * {'|"}n1 n2{'|"} arg1 arg2 arg3  
-   * {'|"}n1 n2{'|"}
-   * n1 arg1 arg2 arg3
-   * n1 
-   * 'n1"s'
-   * "n1's"
-   * 'n1 n2'n3
-   * n3'n1 n2'
-   * n3'n1 n2''n4 n5' 
-   */ 
-
   let cmd: string = ''; 
   let rawArgs: string = ''; 
 
-
-
   if (rawInp.includes('"') || rawInp.includes("'"))
   {
-    //Iterate until a space char outside of quote OR end of input is encountered
-    //Remove all quotes
-
     let last_quote: string = '';
     let idx_to_remove: Set<number> = new Set();
     let i: number = 0;
@@ -325,3 +283,4 @@ export function parseInput(rawInp: string): [string, string[]]
 
   return [cmd, extractArgs(rawArgs)];
 }
+

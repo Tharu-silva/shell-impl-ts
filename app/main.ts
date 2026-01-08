@@ -1,12 +1,17 @@
-import { createInterface } from "readline";
+import { createInterface, type Interface } from "readline";
+import fs from 'fs';
+import { type Writable } from "stream";
+
 
 import { isBuiltIn } from './symbols.ts';
-import { search_PATH, parseInput, runProgram } from './utils.ts';
+import { 
+  search_PATH, parseInput, runProgram, relativeToAbsPaths
+} from './utils.ts';
 import { handleBuiltIns } from './handlers.ts';
 
-export const rl = createInterface({
+export const rl: Interface = createInterface({
   input: process.stdin,
-  output: process.stdout,
+  output: process.stdout
 });
 
 function prompt_shell(): Promise<string> 
@@ -23,36 +28,32 @@ while (true)
   let inp: string = await prompt_shell();
   let cmd: string; 
   let args: string[];
-
-  /**
-   * Offload splitting logic to another function
-   * This function should take in the raw input and return the 
-   * (unquoted) cmd and its arguments as a list of strings
-   */
-
+  
   [cmd, args] = parseInput(inp);
 
-  // let firstSpace: number = inp.indexOf(' ');
-  // if (firstSpace === -1) { //No arguments given
-  //   cmd = inp;
-  //   argsRaw = '';
-  // } else {
-  //   cmd = inp.substring(0, firstSpace);
-  //   argsRaw = inp.substring(firstSpace + 1);
-  // }
+  let out_stream: Writable = process.stdout; //Reset output stream 
+  let err_stream: Writable = process.stdout; 
 
-  // let args: string[] = extractArgs(argsRaw);
+  if (args.includes(">") || args.includes("1>"))
+  { //Stdout redirection is specified
 
-  
+    let redir_idx: number = args.indexOf(">");
+    redir_idx = redir_idx === -1 ? args.indexOf("1>") : redir_idx;
 
-  if (isBuiltIn(cmd))
-  {
-    let nxt = handleBuiltIns(cmd, args);
-    if (nxt === 'Continue') { continue; }
-    else { break; }
+    let fName: string = args[redir_idx + 1];
+    args = args.splice(0, redir_idx);
+    //Creates file if it does not exist
+    out_stream = fs.createWriteStream(fName); 
   }
 
 
+
+  if (isBuiltIn(cmd))
+  {
+    let nxt = handleBuiltIns(cmd, args, out_stream, err_stream);
+    if (nxt === 'Continue') { continue; }
+    else { break; }
+  }
 
   //Search for command
   let pathExists: boolean;
@@ -60,7 +61,7 @@ while (true)
   [pathExists, fullPath] = search_PATH(cmd);
   if (pathExists)
   {
-    await runProgram(cmd, args);
+    await runProgram(cmd, args, out_stream, err_stream);
     continue;
   }  
     
