@@ -31,7 +31,7 @@ while (true)
   
   [cmd, args] = parseInput(inp);
 
-  let out_stream: Writable = process.stdout; //Reset output stream 
+  let out_stream: Writable = process.stdout;  
   let err_stream: Writable = process.stdout; 
 
   if (args.includes(">") || args.includes("1>"))
@@ -46,6 +46,15 @@ while (true)
     out_stream = fs.createWriteStream(fName); 
   }
 
+  if (args.includes("2>"))
+  {
+    let redir_idx: number = args.indexOf("2>");
+
+    let fName: string = args[redir_idx + 1];
+    args = args.splice(0, redir_idx);
+    //Creates file if it does not exist
+    err_stream = fs.createWriteStream(fName); 
+  }
 
 
   if (isBuiltIn(cmd))

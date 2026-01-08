@@ -1,5 +1,4 @@
 import process from 'process';
-import fs from 'fs';
 import { type Interface } from 'readline';
 import { type Writable } from 'stream';
 

@@ -130,9 +130,9 @@ export function runProgram(cmd: string, args: string[], out_stream: Writable, er
       err_stream.write(`${data}`);
     });
     
-    child.on('error', (error) => {
-      err_stream.write(`${error.message}\n`);
-    });
+    // child.on('error', (error) => {
+    //   err_stream.write(`${error.message}\n`);
+    // });
     
     child.on('close', (code) => {
       resolve();
