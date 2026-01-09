@@ -90,9 +90,10 @@ export function handleBuiltIns(cmd: BUILT_IN, args: string[], out_stream: Writab
  * @returns [args, out_stream, err_stream]
  * args: Modified list of arguments
  * out_stream: Redirected output stream
- * err_strea: Redirected error stream
+ * err_stream: Redirected error stream
  */
-export function handleRedirection(args: string[]): [string[], Writable, Writable]
+export function handleRedirection(args: string[])
+  : {modArgs: string[], out_stream: Writable, err_stream: Writable}
 {
   let out_stream: Writable = process.stdout;  
   let err_stream: Writable = process.stdout; 
@@ -100,6 +101,7 @@ export function handleRedirection(args: string[]): [string[], Writable, Writable
 
   let out_redir_specifiers: string[] = [">", "1>", ">>", "1>>"];
   let err_redir_specifiers: string[] = ["2>", "2>>"];
+  let modArgs: string[] = args;
 
   //Find first idx of redir specifier or -1 if it doesn't exist
   let out_redir_idx: number = args.findIndex(item => out_redir_specifiers.includes(item));
@@ -113,7 +115,7 @@ export function handleRedirection(args: string[]): [string[], Writable, Writable
     { options.flags = 'a'; }
 
     let fName: string = args[out_redir_idx + 1];
-    args = args.splice(0, out_redir_idx);
+    modArgs = args.splice(0, out_redir_idx);
 
     //Creates file if it does not exist
     out_stream = fs.createWriteStream(fName, options); 
@@ -124,11 +126,11 @@ export function handleRedirection(args: string[]): [string[], Writable, Writable
     { options.flags = 'a'; }
 
     let fName: string = args[err_redir_idx + 1];
-    args = args.splice(0, err_redir_idx);
+    modArgs = args.splice(0, err_redir_idx);
 
     //Creates file if it doesn't exist
     err_stream = fs.createWriteStream(fName, options); 
   }
 
-  return [args, out_stream, err_stream]; 
+  return {modArgs, out_stream, err_stream}; 
 }

@@ -31,16 +31,13 @@ while (true)
   
   [cmd, args] = parseInput(inp);
 
-  let out_stream: Writable;
-  let err_stream: Writable;
-
   //Redirects streams if redirection is specified
-  [args, out_stream, err_stream] = handleRedirection(args);
+  let { modArgs, out_stream, err_stream } = handleRedirection(args);
 
 
   if (isBuiltIn(cmd))
   {
-    let nxt = handleBuiltIns(cmd, args, out_stream, err_stream);
+    let nxt = handleBuiltIns(cmd, modArgs, out_stream, err_stream);
     if (nxt === 'Continue') { continue; }
     else { break; }
   }
@@ -51,13 +48,13 @@ while (true)
   [pathExists, fullPath] = search_PATH(cmd);
   if (pathExists)
   {
-    await runProgram(cmd, args, out_stream, err_stream);
+    await runProgram(cmd, modArgs, out_stream, err_stream);
     continue;
   }  
   
   out_stream.end();
   err_stream.end(); 
-  
+
   rl.write(`${cmd}: command not found\n`);
 }
 
