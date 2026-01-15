@@ -80,7 +80,14 @@ while (true)
   if (key === 'tab')
   {
     let autoCompWord: string = autoCompleteBuiltIns.look_up_prefix(input) ?? '';
-    prompt = autoCompWord + ' '; 
+    if (autoCompWord === '') //No matching completion
+    {
+      prompt = input + '\x07'; //Bell char
+    } else 
+    {
+      prompt = autoCompWord + ' ';
+    }
+    
     continue; 
   }
 
