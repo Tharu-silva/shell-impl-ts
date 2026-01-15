@@ -1,4 +1,4 @@
-const BUILT_INS = ['echo', 'exit', 'type', 'pwd', 'cd'] as const;
+export const BUILT_INS = ['echo', 'exit', 'type', 'pwd', 'cd'];
 export type BUILT_IN = "echo" | "exit" | "type" | "pwd" | "cd";
 
 export function isBuiltIn(cmd: string): cmd is BUILT_IN

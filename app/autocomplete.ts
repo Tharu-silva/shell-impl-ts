@@ -1,14 +1,20 @@
 import {type TrieNode, type Trie} from '../types/trie.ts'
 
-class AutoComplete implements Trie {
+export class AutoComplete implements Trie {
     root: TrieNode;
     
-    constructor() {
+    constructor(words: string[]) {
         this.root = {
             letter: '', 
             children: new Map(), 
             is_terminal: false
         };
+        
+        //Build tree
+        for (let word of words)
+        {
+            this.add_word(word);
+        }
     }
 
     add_word(word: string): void 

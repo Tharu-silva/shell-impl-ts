@@ -1,13 +1,12 @@
 import { createInterface, type Interface, emitKeypressEvents } from "readline";
-import fs from 'fs';
-import { type Writable } from "stream";
 
 import {type PromptResult} from '../types/common.ts';
-import { isBuiltIn } from './symbols.ts';
+import { BUILT_INS, isBuiltIn } from './symbols.ts';
 import { 
   search_PATH, parseInput, runProgram, relativeToAbsPaths
 } from './utils.ts';
 import { handleBuiltIns, handleRedirection } from './handlers.ts';
+import { AutoComplete } from "./autocomplete.ts";
 
 export const rl: Interface = createInterface({
   input: process.stdin,
@@ -21,21 +20,20 @@ if (process.stdin.isTTY) {
 emitKeypressEvents(process.stdin);
 
 
-function prompt_shell(): Promise<PromptResult> {
+function prompt_shell(prompt: string = ''): Promise<PromptResult> {
   return new Promise((resolve) => {
-    let input = '';
-    
-    process.stdout.write('$ ');
+    let input = prompt;
+
+    process.stdout.clearLine(0);
+    process.stdout.cursorTo(0);
+    process.stdout.write('$ ' + prompt);
     
     const onKeypress = (str: string, key: any) => {
       if (key.name === 'tab') 
       {
-        // Tab pressed - resolve with 'tab' state
-        // process.stdout.write('\n');
         process.stdin.removeListener('keypress', onKeypress);
         resolve({input, key: 'tab'});
 
-        // resolve({ input, key: 'tab' });
       } else if (key.name === 'return' || key.name === 'enter') 
       {
         // Enter pressed - resolve with 'enter' state
@@ -69,18 +67,23 @@ function prompt_shell(): Promise<PromptResult> {
 //Build prefix trie of built ins
 //Then search over when TAB is pressed
 //Then output to console
+let autoCompleteBuiltIns: AutoComplete = new AutoComplete(BUILT_INS);
 
+
+let prompt: string = '';
 while (true) 
 {
-  // let input: string;
-  // let key: string; 
-  let {input, key} = await prompt_shell();
+  let {input, key} = await prompt_shell(prompt);
+  prompt = ''; 
 
   //Handle auto-completion if key is <TAB>
   if (key === 'tab')
   {
-    
+    let autoCompWord: string = autoCompleteBuiltIns.look_up_prefix(input) ?? '';
+    prompt = autoCompWord + ' '; 
+    continue; 
   }
+
   let cmd: string; 
   let args: string[];
   
