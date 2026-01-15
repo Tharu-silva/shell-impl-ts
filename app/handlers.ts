@@ -3,7 +3,8 @@ import fs from 'fs';
 import { type Writable } from 'stream';
 
 import { type BUILT_IN, isBuiltIn } from './symbols.ts';
-import { search_PATH, isDirectory, relativeToAbsPaths } from './utils.ts';
+import { isDirectory, relativeToAbsPaths } from './utils.ts';
+import { search_PATH } from './exec.ts';
 import { rl } from './main.ts';
 
 /**
@@ -20,9 +21,7 @@ function handleType(cmd: string, out_stream: Writable, err_stream: Writable)
   } 
   
   //Check if cmd exists on path
-  let pathExists: boolean;
-  let fullPath: string; 
-  [pathExists, fullPath] = search_PATH(cmd);
+  let {pathExists, fullPath, exec_name: _} = search_PATH(cmd);
 
   if (pathExists) 
   { 

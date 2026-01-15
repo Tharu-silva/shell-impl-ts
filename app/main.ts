@@ -2,9 +2,16 @@ import { createInterface, type Interface, emitKeypressEvents } from "readline";
 
 import {type PromptResult} from '../types/common.ts';
 import { BUILT_INS, isBuiltIn } from './symbols.ts';
+
 import { 
-  search_PATH, parseInput, runProgram, relativeToAbsPaths
+  parseInput
 } from './utils.ts';
+
+import { 
+  search_PATH, runProgram, 
+  execAutocomplete
+} from "./exec.ts";
+
 import { handleBuiltIns, handleRedirection } from './handlers.ts';
 import { AutoComplete } from "./autocomplete.ts";
 
@@ -64,9 +71,6 @@ function prompt_shell(prompt: string = ''): Promise<PromptResult> {
 }
 
 //Auto-complete set-up
-//Build prefix trie of built ins
-//Then search over when TAB is pressed
-//Then output to console
 let autoCompleteBuiltIns: AutoComplete = new AutoComplete(BUILT_INS);
 
 
@@ -79,14 +83,13 @@ while (true)
   //Handle auto-completion if key is <TAB>
   if (key === 'tab')
   {
-    let autoCompWord: string = autoCompleteBuiltIns.look_up_prefix(input) ?? '';
-    if (autoCompWord === '') //No matching completion
-    {
-      prompt = input + '\x07'; //Bell char
-    } else 
-    {
-      prompt = autoCompWord + ' ';
-    }
+    //Search over built-ins, if not look over executables
+    let autoCompCmd: string | undefined = autoCompleteBuiltIns.look_up_prefix(input);
+    autoCompCmd = autoCompCmd ?? execAutocomplete(input); 
+
+    //No matching completion
+    if (autoCompCmd === undefined) { prompt = input + '\x07'}
+    else { prompt = autoCompCmd + ' '; }
     
     continue; 
   }
@@ -108,9 +111,7 @@ while (true)
   }
 
   //Search for command
-  let pathExists: boolean;
-  let fullPath: string; 
-  [pathExists, fullPath] = search_PATH(cmd);
+  let {pathExists, fullPath: _, exec_name: __} = search_PATH(cmd);
   if (pathExists)
   {
     await runProgram(cmd, modArgs, out_stream, err_stream);

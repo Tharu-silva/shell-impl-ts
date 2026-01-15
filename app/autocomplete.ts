@@ -3,7 +3,7 @@ import {type TrieNode, type Trie} from '../types/trie.ts'
 export class AutoComplete implements Trie {
     root: TrieNode;
     
-    constructor(words: string[]) {
+    constructor(words: string[] = []) {
         this.root = {
             letter: '', 
             children: new Map(), 
