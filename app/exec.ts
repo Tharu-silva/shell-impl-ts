@@ -45,7 +45,7 @@ export function search_PATH(cmd: string, mode: SearchMode = 'exact'): PathReturn
   let paths: string[] | undefined = process.env.PATH?.split(delimiter);
   
 	let pathReturn: PathReturn = {
-		pathExists: false, fullPaths: [""], exec_names: [cmd]
+		pathExists: false, fullPaths: [], exec_names: []
 	}
   if (paths === undefined) { return pathReturn; }
   

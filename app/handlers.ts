@@ -163,6 +163,7 @@ export function handleAutoComplete(shellProps: ShellProps, prevKeyPress: KeyPres
     if (prevKeyPress === 'tab') 
     {
       nxtConfig.prompt = shellProps.input; 
+      autoCompletes = autoCompletes.sort();
       nxtConfig.output = autoCompletes.join("  ");
     } else 
     { nxtConfig.prompt = shellProps.input + '\x07'; }
