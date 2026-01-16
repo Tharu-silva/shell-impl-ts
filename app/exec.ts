@@ -5,39 +5,49 @@ import fs from 'fs';
 
 import { type SearchMode, type PathReturn } from '../types/common';
 
-let exec_cache: Map<string, string> = new Map();
+//Map from executable name to its fully qualified path
+// let exec_cache: Map<string, string> = new Map();
 
-//exec_AUTOCOMPLETE
-//Given a prefix traverse path and find the first matching executable. 
-//If one exists then adds it to some exec cache and returns
-//If one does not exist then returns undefined
-export function execAutocomplete(prefix: string): string | undefined
+/**
+ * Returns all the executable names that match the given prefix
+ * 
+ * @param prefix The prefix of the executable
+ * @returns List of string of all prefix-matching executable
+ */
+export function execAutocomplete(prefix: string): string[]
 {
-	let {pathExists, fullPath, exec_name} = search_PATH(prefix, 'prefix');
-	if (!pathExists) { return undefined; }
+	let {pathExists, fullPaths, exec_names} = search_PATH(prefix, 'prefix');
+	if (!pathExists) { return []; } //No prefix matches
 
-	//Cache exec name and it's path
-	exec_cache.set(exec_name, fullPath);
+	//Cache exec name and the path(s)
+  // exec_names.forEach((exec_name,i) => exec_cache.set(exec_name, fullPaths[i]));
 
-	return exec_name;
+	return exec_names;
 }
 
 /**
  * Searches the system PATH for a given command in a given mode
+ * 
+ * 'exact' mode - Searches for exact matches of cmd.
+ * 'prefix' mode - Searches for prefix matches. If multiple prefix matches, all the matching 
+ *                 executables will be returned. 
+ * 
  * @param cmd The command to search for.
- * @param mode The search mode. 'exact' for exact matches, 'prefix' for prefix matches
+ * @param mode The search mode. 
  * @returns A tuple where the first element is a boolean indicating if the command was found,
- *          and the second element is the full path to the command if found, or an empty string if not found.
+ *          and the second element are the full paths to the command(s) if found, or an empty string if not found.
  */
 export function search_PATH(cmd: string, mode: SearchMode = 'exact'): PathReturn
 {
+  //Check in cache
+
   //Split path 
   let paths: string[] | undefined = process.env.PATH?.split(delimiter);
   
-	let bad_cmd: PathReturn = {
-		pathExists: false, fullPath: "", exec_name: cmd
+	let pathReturn: PathReturn = {
+		pathExists: false, fullPaths: [""], exec_names: [cmd]
 	}
-  if (paths === undefined) { return bad_cmd; }
+  if (paths === undefined) { return pathReturn; }
   
   let pathItem: string; 
   for (pathItem of paths)
@@ -78,25 +88,24 @@ export function search_PATH(cmd: string, mode: SearchMode = 'exact'): PathReturn
       //Ignore directories and bad exec perms
       if (!stats.isDirectory() && canOwnerExec)
       { 
-				//Check if cmd matches current item according to mode
-				let isMatch: boolean; 
-				switch (mode)
-				{
-					case 'exact':
-						isMatch = (cmd == item);
-						break;
-					case 'prefix':
-						isMatch = item.startsWith(cmd);
-				}
-				
-				if (isMatch) { 
-					return { pathExists: isMatch, fullPath: fullPath, exec_name: item}; }
+				//Check if cmd is an exact match 
+				if (item === cmd && mode === 'exact') 
+        { 
+					return { pathExists: true, fullPaths: [fullPath], exec_names: [item]}; 
+        }
+
+        //Prefix mode is specified - add to the accumulator if cmd is prefix of item
+        if (item.startsWith(cmd)) 
+        {
+          pathReturn.fullPaths.push(fullPath);
+          pathReturn.exec_names.push(item);
+        }
       }
     }
   }
 
-  //Not found
-  return bad_cmd;
+  pathReturn.pathExists = pathReturn.fullPaths.length > 0; 
+  return pathReturn;
 }
 
 /**

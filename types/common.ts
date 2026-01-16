@@ -1,12 +1,18 @@
-export interface PromptResult {
-  input: string;
-  key: 'tab' | 'enter';
-};
-
 export type SearchMode = 'exact' | 'prefix'; 
+export type KeyPress = 'tab' | 'enter';
 
 export interface PathReturn {
   pathExists: boolean;
-  fullPath: string; 
-  exec_name: string; 
+  fullPaths: string[]; 
+  exec_names: string[]; 
+};
+
+export interface ShellProps {
+  input: string; 
+  keyPress: KeyPress; 
+};
+
+export interface ShellConfig {
+  output?: string;
+  prompt: string; 
 };

@@ -1,19 +1,17 @@
 import { createInterface, type Interface, emitKeypressEvents } from "readline";
 
-import {type PromptResult} from '../types/common.ts';
-import { BUILT_INS, isBuiltIn } from './symbols.ts';
+import type { KeyPress, ShellConfig, ShellProps } from '../types/common.ts';
+import { isBuiltIn } from './symbols.ts';
 
 import { 
   parseInput
 } from './utils.ts';
 
 import { 
-  search_PATH, runProgram, 
-  execAutocomplete
+  search_PATH, runProgram
 } from "./exec.ts";
 
-import { handleBuiltIns, handleRedirection } from './handlers.ts';
-import { AutoComplete } from "./autocomplete.ts";
+import { handleAutoComplete, handleBuiltIns, handleRedirection } from './handlers.ts';
 
 export const rl: Interface = createInterface({
   input: process.stdin,
@@ -26,26 +24,35 @@ if (process.stdin.isTTY) {
 }
 emitKeypressEvents(process.stdin);
 
-
-function prompt_shell(prompt: string = ''): Promise<PromptResult> {
+//Create shell state obj
+function prompt_shell(shellConfig: ShellConfig): Promise<ShellProps> {
   return new Promise((resolve) => {
-    let input = prompt;
+    let input: string = shellConfig.prompt;
 
-    process.stdout.clearLine(0);
-    process.stdout.cursorTo(0);
-    process.stdout.write('$ ' + prompt);
+    //If output is specified then output that then add the prompt line
+    if (shellConfig.output)
+    {
+      process.stdout.write('\n' + shellConfig.output + '\n');
+    } else 
+    {
+      process.stdout.clearLine(0);
+      process.stdout.cursorTo(0);
+    }
+
+    process.stdout.write('$ ' + shellConfig.prompt);
     
     const onKeypress = (str: string, key: any) => {
+
       if (key.name === 'tab') 
       {
         process.stdin.removeListener('keypress', onKeypress);
-        resolve({input, key: 'tab'});
+        resolve({input, keyPress: 'tab'});
 
       } else if (key.name === 'return' || key.name === 'enter') 
       {
         // Enter pressed - resolve with 'enter' state
         process.stdin.removeListener('keypress', onKeypress);
-        resolve({ input, key: 'enter' });
+        resolve({ input, keyPress: 'enter' });
       } else if (key.ctrl && key.name === 'c') 
       {
         // Handle Ctrl+C to exit
@@ -70,34 +77,33 @@ function prompt_shell(prompt: string = ''): Promise<PromptResult> {
   });
 }
 
-//Auto-complete set-up
-let autoCompleteBuiltIns: AutoComplete = new AutoComplete(BUILT_INS);
-
-
-let prompt: string = '';
+let shellConfig: ShellConfig = {prompt: ''};
+let prevKeyPress: KeyPress;
+let shellProps: ShellProps = {input: '', keyPress: 'enter'};
 while (true) 
 {
-  let {input, key} = await prompt_shell(prompt);
-  prompt = ''; 
+  //Record prev keypress
+  prevKeyPress = shellProps.keyPress; 
+
+  shellProps = await prompt_shell(shellConfig);
+
+  //Reset next prompt
+  shellConfig.prompt = '';
+
+  //Clean input
+  shellProps.input = shellProps.input.replace(/\x07/g, '').trim();
 
   //Handle auto-completion if key is <TAB>
-  if (key === 'tab')
-  {
-    //Search over built-ins, if not look over executables
-    let autoCompCmd: string | undefined = autoCompleteBuiltIns.look_up_prefix(input);
-    autoCompCmd = autoCompCmd ?? execAutocomplete(input); 
-
-    //No matching completion
-    if (autoCompCmd === undefined) { prompt = input + '\x07'}
-    else { prompt = autoCompCmd + ' '; }
-    
+  if (shellProps.keyPress === 'tab')
+  { 
+    shellConfig = handleAutoComplete(shellProps, prevKeyPress); 
     continue; 
   }
 
   let cmd: string; 
   let args: string[];
   
-  [cmd, args] = parseInput(input);
+  [cmd, args] = parseInput(shellProps.input);
 
   //Redirects streams if redirection is specified
   let { modArgs, out_stream, err_stream } = handleRedirection(args);
@@ -111,7 +117,7 @@ while (true)
   }
 
   //Search for command
-  let {pathExists, fullPath: _, exec_name: __} = search_PATH(cmd);
+  let {pathExists, fullPaths: _, exec_names: __} = search_PATH(cmd);
   if (pathExists)
   {
     await runProgram(cmd, modArgs, out_stream, err_stream);

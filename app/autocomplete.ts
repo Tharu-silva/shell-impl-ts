@@ -42,20 +42,22 @@ export class AutoComplete implements Trie {
     }
 
     /**
-     * Looks up the prefix in the Trie and returns a matching word, otherwise undefined.
+     * Looks up the prefix in the Trie and returns the matching word(s), otherwise undefined.
      * @param word The prefix to lookup
-     * @returns A word in the trie that matches the prefix, otherwise undefined
+     * @returns The word(s) in the trie that matches the prefix, otherwise undefined
+     * 
+     * TODO: Impl behaviour to capture all children
      */
-    look_up_prefix(prefix: string): string | undefined 
+    look_up_prefix(prefix: string): string[] 
     {
-        if (prefix === '') { return undefined; }
+        if (prefix === '') { return []; }
         let curr: TrieNode = this.root; 
 
         for (const lttr of prefix)
         {
             //Creates new TrieNode if mapping doesn't exist
             let nxt_node: TrieNode | undefined = curr.children.get(lttr);
-            if (!nxt_node) { return undefined; } //Prefix does not exist
+            if (!nxt_node) { return []; } //Prefix does not exist
             curr = nxt_node; 
         }
         
@@ -72,6 +74,6 @@ export class AutoComplete implements Trie {
             curr = nxt_node ?? curr; 
         }
         
-        return word; 
+        return [word]; 
     }
 }

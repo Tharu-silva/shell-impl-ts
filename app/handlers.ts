@@ -2,10 +2,12 @@ import process from 'process';
 import fs from 'fs';
 import { type Writable } from 'stream';
 
-import { type BUILT_IN, isBuiltIn } from './symbols.ts';
+import { type BUILT_IN, isBuiltIn, BUILT_INS } from './symbols.ts';
 import { isDirectory, relativeToAbsPaths } from './utils.ts';
-import { search_PATH } from './exec.ts';
+import { search_PATH, execAutocomplete } from './exec.ts';
 import { rl } from './main.ts';
+import type { KeyPress, ShellConfig, ShellProps } from '../types/common.ts';
+import { AutoComplete } from "./autocomplete.ts";
 
 /**
  * Handles the 'type' command by checking if the given command is a shell builtin
@@ -21,11 +23,11 @@ function handleType(cmd: string, out_stream: Writable, err_stream: Writable)
   } 
   
   //Check if cmd exists on path
-  let {pathExists, fullPath, exec_name: _} = search_PATH(cmd);
+  let {pathExists, fullPaths, exec_names: _} = search_PATH(cmd);
 
   if (pathExists) 
   { 
-    out_stream.write(`${cmd} is ${fullPath}\n`); 
+    out_stream.write(`${cmd} is ${fullPaths[0]}\n`); 
   } else 
   { 
     err_stream.write(`${cmd}: not found\n`); 
@@ -133,3 +135,39 @@ export function handleRedirection(args: string[])
 
   return {modArgs, out_stream, err_stream}; 
 }
+
+//Auto-complete set-up
+let builtInAutoComplete: AutoComplete = new AutoComplete(BUILT_INS);
+
+/**
+ * Handles AutoCompletion on a <TAB> key press. Handles both autocompletion on
+ * built-ins and executables in PATH. If prev keypress is <TAB> then modifies ShellConfig 
+ * to display all the cmds as the next output
+ * @param shellProps The property object of the shell
+ * @returns The next configuration of the shell (Next output and Next prompt)
+ */
+export function handleAutoComplete(shellProps: ShellProps, prevKeyPress: KeyPress): ShellConfig 
+{
+  
+  //Search over built-ins, if not look over executables
+  let autoCompletes: string[] = builtInAutoComplete.look_up_prefix(shellProps.input);
+  autoCompletes = (autoCompletes.length == 0) ? execAutocomplete(shellProps.input): autoCompletes; 
+
+  let nxtConfig: ShellConfig = {prompt: ''};
+
+
+  //No matching completions or many matching completions
+  if (autoCompletes.length === 0 || autoCompletes.length > 1) 
+  {
+    // console.log(prevKeyPress);
+    if (prevKeyPress === 'tab') 
+    {
+      nxtConfig.prompt = shellProps.input; 
+      nxtConfig.output = autoCompletes.join("  ");
+    } else 
+    { nxtConfig.prompt = shellProps.input + '\x07'; }
+  }
+  else { nxtConfig.prompt = autoCompletes[0] + ' '; } //Single matching completion
+  
+  return nxtConfig; 
+} 
