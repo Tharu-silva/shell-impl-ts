@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { AutoComplete } from './autocomplete';
 
 /**
  * Checks if the given absolute path is a directory.
@@ -195,3 +196,10 @@ export function parseInput(rawInp: string): [string, string[]]
   return [cmd, extractArgs(rawArgs)];
 }
 
+
+export function findLongestCommonPrefix(words: string[]): string 
+{
+  let word_trie = new AutoComplete(words);
+
+  return word_trie.find_longest_common_prefix();
+}

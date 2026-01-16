@@ -3,7 +3,10 @@ import fs from 'fs';
 import { type Writable } from 'stream';
 
 import { type BUILT_IN, isBuiltIn, BUILT_INS } from './symbols.ts';
-import { isDirectory, relativeToAbsPaths } from './utils.ts';
+import { 
+  isDirectory, relativeToAbsPaths,
+  findLongestCommonPrefix
+} from './utils.ts';
 import { search_PATH, execAutocomplete } from './exec.ts';
 import { rl } from './main.ts';
 import type { KeyPress, ShellConfig, ShellProps } from '../types/common.ts';
@@ -157,18 +160,31 @@ export function handleAutoComplete(shellProps: ShellProps, prevKeyPress: KeyPres
 
 
   //No matching completions or many matching completions
-  if (autoCompletes.length === 0 || autoCompletes.length > 1) 
-  {
-    // console.log(prevKeyPress);
-    if (prevKeyPress === 'tab') 
+  if (autoCompletes.length === 0)
+  {//No completions
+    nxtConfig.prompt = shellProps.input + '\x07'; 
+  } else if (autoCompletes.length > 1) 
+  {//Multiple completions
+    let lcp: string = findLongestCommonPrefix(autoCompletes);
+
+    if (lcp.length > shellProps.input.length)
+    {//Found longer lcp   
+      nxtConfig.prompt = lcp;
+    } else if (prevKeyPress === 'tab') 
     {
       nxtConfig.prompt = shellProps.input; 
       autoCompletes = autoCompletes.sort();
       nxtConfig.output = autoCompletes.join("  ");
     } else 
-    { nxtConfig.prompt = shellProps.input + '\x07'; }
-  }
-  else { nxtConfig.prompt = autoCompletes[0] + ' '; } //Single matching completion
+    {
+      nxtConfig.prompt = shellProps.input + '\x07'; 
+    }
+  } else 
+  {//Single matching completion
+    nxtConfig.prompt = autoCompletes[0] + ' '; 
+  } 
   
+
   return nxtConfig; 
 } 
+

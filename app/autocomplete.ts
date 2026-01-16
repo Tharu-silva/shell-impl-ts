@@ -76,4 +76,20 @@ export class AutoComplete implements Trie {
         
         return [word]; 
     }
+
+    find_longest_common_prefix(): string
+    {
+			//Iterate from root until we get to a child with multiple children
+			let lcp: string = '';
+			let curr_node: TrieNode = this.root; 
+
+			while (curr_node.children.size == 1 && !curr_node.is_terminal)
+			{
+				let [nxt_letter] = curr_node.children.keys();
+				lcp += nxt_letter; 
+				curr_node = curr_node.children.get(nxt_letter) as TrieNode; 
+			}
+
+			return lcp;
+    }
 }
